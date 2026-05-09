@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <!-- ... (Mantén todo el bloque de <style> que tenías antes, es excelente) ... -->
+    <style>
+        /* Agrega este pequeño cambio para el efecto Crystal */
+        :root { --glass: rgba(255, 255, 255, 0.05); --glass-border: rgba(255, 255, 255, 0.1); }
+        .ch-card { background: var(--glass) !important; backdrop-filter: blur(10px); border: 1px solid var(--glass-border) !important; }
+    </style>
+</head>
+<body>
+    <!-- ... (Mantén toda la estructura de <body>: Header, Timer, Player, Grid, etc.) ... -->
+
+    <script>
+        // CONFIGURACIÓN DE TU LLAVE PRIVADA
+        const GITHUB_TOKEN = "TU_TOKEN_AQUÍ"; // PEGA AQUÍ TU TOKEN (ghp_...)
+        const JSON_URL = "https://raw.githubusercontent.com/Master3030/paraguay-tv/main/pylivetvprivado.json";
+
+        let channels = [];
+
+        // FUNCIÓN MAESTRA: Lee el Repo Privado
+        async function syncWithPrivateRepo() {
+            try {
+                const response = await fetch(JSON_URL, {
+                    headers: {
+                        'Authorization': `token ${GITHUB_TOKEN}`,
+                        'Accept': 'application/vnd.github.v3.raw'
+                    }
+                });
+                const data = await response.json();
+                
+                // Actualiza el nombre de la App desde el JSON
+                document.getElementById('logoBtn').innerHTML = `📺 <span>${data.configuracion.app_name}</span>`;
+                
+                // Mapea los canales
+                channels = data.canales;
+                localStorage.setItem('pltv_channels', JSON.stringify(channels));
+                
+                renderAll(); // Esta es la función que ya tenías para dibujar la grilla
+                toast('✅ Sincronizado con Repositorio Privado');
+            } catch (error) {
+                console.error("Error:", error);
+                toast('❌ Error de acceso al servidor');
+            }
+        }
+
+        // Modifica tu función de inicio
+        window.onload = () => {
+            syncWithPrivateRepo();
+            startTimer(); 
+        };
+
+        // ... (Aquí sigue el resto de tus funciones: play, renderAll, etc.) ...
+    </script>
+</body>
+</html>
