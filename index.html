@@ -186,7 +186,7 @@
 // ══════════════════════════════════════════════════════
 // JSON público — sin token, sin secretos
 const DATA_URL = "https://raw.githubusercontent.com/Master3030/Paraguay-Tv-Live/main/canales.json";
-const STARTIO_APP_ID = "TU_APP_ID_STARTIO";  // ← tu App ID de Start.io
+const STARTIO_APP_ID = "204386295";  // ← tu App ID de Start.io
 
 // Estos valores se sobreescriben con los del JSON al cargar
 let CREDITO_INICIAL_SEG    = 300;   // fallback si el JSON tarda
@@ -293,25 +293,30 @@ function initStartio() {
 }
 
 function requestAd() {
-    setAdLoading(true);
+    // Si está en la app Android usar el puente nativo
+    if (typeof AndroidAds !== 'undefined') {
+        setAdLoading(true);
+        setTimeout(() => setAdLoading(false), 2000);
+        AndroidAds.showInterstitial();
+        return;
+    }
 
+    // Fallback web — Start.io SDK web
+    setAdLoading(true);
     if (typeof StartApp === 'undefined' || !startioAd) {
-        // ── MODO DEMO (sin SDK cargado, para pruebas) ──
-        console.log('[TV] Modo demo: simulando anuncio 3 seg');
+        // Modo demo
         setTimeout(() => {
             setAdLoading(false);
             onAdRewarded();
         }, 3000);
         return;
     }
-
     if (!adReady) {
-        // Recargar y esperar
         startioAd.load({
             onAdLoaded: () => { adReady = true; showAd(); },
             onAdLoadFailed: () => {
                 setAdLoading(false);
-                alert('No hay anuncio disponible ahora. Intentá en un momento.');
+                alert('No hay anuncio disponible. Intentá de nuevo.');
             }
         });
         return;
