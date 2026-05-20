@@ -61,7 +61,8 @@
       "id": "snt",
       "nombre": "SNT",
       "categoria": "Variedades",
-      "url": "https://d2qsan2ut81n2k.cloudfront.net/live/2e1f1b6a-9d03-4194-8559-2eabe61a1555/ts:abr.m3u8",
+      "url": " <iframe src="https://d2qsan2ut81n2k.cloudfront.net/live/2e1f1b6a-9d03-4194-8559-2eabe61a1555/ts:abr.m3u8" width="600" height="400"></iframe>
+ ",
       "logo": "https://www.snt.com.py/wp-content/uploads/2022/07/logo-snt.png",
       "tipo": "iframe",
       "url_embed": "https://mastvfree.blogspot.com/2026/05/snt-iframe.html"
