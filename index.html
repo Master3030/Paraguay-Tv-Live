@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>PY TV PRO</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- ═══ START.IO SDK ═══ -->
+    <!-- Reemplazá YOUR_APP_ID con tu App ID de Start.io -->
+    <script src="https://cdn.start.io/startio-web-sdk.js"></script>
+
+    <style>
+        :root { --red:#e50914; --bg:#070707; --card:#111; --border:#1a1a1a; --gold:#f5c518; }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body { background:var(--bg); color:#fff; font-family:'Inter',sans-serif; }
+
+        /* HEADER */
+        header {
+            position:sticky; top:0; z-index:300;
+            height:54px; display:flex; align-items:center; justify-content:space-between;
+            padding:0 16px; background:rgba(7,7,7,0.97); border-bottom:1px solid var(--border);
+            backdrop-filter:blur(12px);
+        }
+        .logo { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; letter-spacing:4px;
+            background:linear-gradient(90deg,#fff 50%,var(--red)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .dot { width:8px; height:8px; border-radius:50%; background:#2ecc71; box-shadow:0 0 6px #2ecc71; animation:blink 2s infinite; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+        /* CRÉDITO en header */
+        #creditDisplay {
+            display:flex; align-items:center; gap:6px;
+            font-size:.7rem; font-weight:700; color:var(--gold);
+            background:rgba(245,197,24,.1); border:1px solid rgba(245,197,24,.25);
+            border-radius:20px; padding:4px 10px; cursor:pointer;
+            transition:background .2s;
+        }
+        #creditDisplay:hover { background:rgba(245,197,24,.2); }
+        #creditDisplay.low { color:#ff6b6b; border-color:rgba(255,107,107,.4); background:rgba(255,107,107,.08); animation:creditPulse 1s infinite; }
+        @keyframes creditPulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+        #creditDisplay .icon { font-size:.9rem; }
+
+        /* BOTÓN FLOTANTE "+1H" (visible con crédito) */
+        #floatAdBtn {
+            position:fixed; bottom:20px; right:16px; z-index:500;
+            background:linear-gradient(135deg,#f5c518,#e6a800);
+            color:#000; font-weight:800; font-size:.75rem;
+            border:none; border-radius:24px; padding:10px 16px;
+            box-shadow:0 4px 18px rgba(245,197,24,.4);
+            cursor:pointer; display:flex; align-items:center; gap:6px;
+            animation:floatBounce 3s ease-in-out infinite;
+            transition:transform .15s;
+        }
+        #floatAdBtn:active { transform:scale(.93); }
+        @keyframes floatBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+
+        /* PLAYER */
+        #playerBox { display:none; position:sticky; top:54px; z-index:200; background:#000; border-bottom:2px solid var(--red); }
+        video { width:100%; aspect-ratio:16/9; display:block; background:#000; }
+        .player-bar { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; background:#0d0d0d; gap:10px; }
+        .live-badge { font-size:.6rem; font-weight:700; letter-spacing:1px; background:var(--red); color:#fff; padding:2px 7px; border-radius:4px; flex-shrink:0; }
+        #playingTitle { font-size:.8rem; font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .close-btn { background:none; border:1px solid #333; color:#aaa; border-radius:6px; padding:4px 10px; font-size:.75rem; cursor:pointer; flex-shrink:0; }
+
+        /* STATUS BAR (reconexión) */
+        #statusBar { display:none; font-size:.7rem; text-align:center; padding:5px 10px; background:#1a0000; color:#ff8080; border-bottom:1px solid #3a0000; }
+
+        /* ═══ PANTALLA DE BLOQUEO (crédito agotado) ═══ */
+        #lockScreen {
+            display:none; position:fixed; inset:0; z-index:1000;
+            background:rgba(0,0,0,.97);
+            flex-direction:column; align-items:center; justify-content:center;
+            text-align:center; padding:30px;
+            animation:fadeIn .3s ease;
+        }
+        @keyframes fadeIn { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:scale(1)} }
+        #lockScreen.visible { display:flex; }
+        .lock-icon { font-size:3.5rem; margin-bottom:16px; }
+        .lock-title { font-family:'Bebas Neue',sans-serif; font-size:2.2rem; letter-spacing:3px; margin-bottom:8px; }
+        .lock-sub { color:#666; font-size:.85rem; line-height:1.5; margin-bottom:32px; max-width:280px; }
+        .watch-ad-btn {
+            background:linear-gradient(135deg,#f5c518,#e6a800);
+            color:#000; font-weight:800; font-size:1rem; letter-spacing:.5px;
+            border:none; border-radius:14px; padding:16px 36px;
+            cursor:pointer; width:100%; max-width:300px;
+            box-shadow:0 6px 24px rgba(245,197,24,.35);
+            transition:transform .15s, box-shadow .15s;
+            display:flex; align-items:center; justify-content:center; gap:10px;
+        }
+        .watch-ad-btn:active { transform:scale(.95); box-shadow:0 2px 10px rgba(245,197,24,.2); }
+        .watch-ad-btn .btn-icon { font-size:1.3rem; }
+        .reward-info {
+            margin-top:16px; color:#555; font-size:.75rem;
+        }
+        .reward-info span { color:var(--gold); font-weight:700; }
+
+        /* Progress de carga del anuncio */
+        #adLoadingBar {
+            display:none; width:100%; max-width:300px; height:4px;
+            background:#222; border-radius:2px; margin-top:14px; overflow:hidden;
+        }
+        #adLoadingBar.visible { display:block; }
+        #adLoadingFill { height:100%; width:0; background:var(--gold); border-radius:2px; transition:width .3s; }
+
+        /* FILTROS */
+        .filters { display:flex; gap:8px; padding:12px 14px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); }
+        .filters::-webkit-scrollbar { display:none; }
+        .filter-btn { flex-shrink:0; padding:5px 14px; border-radius:20px; font-size:.75rem; font-weight:600; border:1px solid #333; background:transparent; color:#888; cursor:pointer; transition:all .2s; }
+        .filter-btn.active { background:var(--red); border-color:var(--red); color:#fff; }
+
+        /* GRID */
+        .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; padding:14px; }
+        .card { background:var(--card); border-radius:14px; padding:14px 10px; text-align:center; border:1px solid var(--border); cursor:pointer; transition:transform .15s,border-color .2s; position:relative; overflow:hidden; }
+        .card:active { transform:scale(.93); }
+        .card.playing { border-color:var(--red); box-shadow:0 0 16px rgba(229,9,20,.3); }
+        .card img { width:100%; height:44px; object-fit:contain; }
+        .card-name { font-size:.72rem; font-weight:700; margin-top:9px; letter-spacing:.5px; color:#ddd; }
+        .card-cat { font-size:.6rem; color:#555; margin-top:2px; text-transform:uppercase; }
+
+        /* LOADER */
+        #loader { text-align:center; padding:40px 20px; color:#444; }
+        .spinner { width:32px; height:32px; border:3px solid #222; border-top-color:var(--red); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 12px; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+
+        footer { text-align:center; padding:20px 20px 80px; color:#2a2a2a; font-size:.65rem; border-top:1px solid var(--border); margin-top:10px; }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+    <div class="logo">PY TV PRO</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+        <div id="creditDisplay" onclick="showLockIfLow()">
+            <span class="icon">⏱</span>
+            <span id="creditText">05:00</span>
+        </div>
+        <div class="dot"></div>
+    </div>
+</header>
+
+<!-- PLAYER -->
+<div id="playerBox">
+    <video id="video" controls playsinline webkit-playsinline></video>
+    <iframe id="iframePlayer" 
+        style="display:none;width:100%;aspect-ratio:16/9;border:none;background:#000;"
+        allowfullscreen allow="autoplay; fullscreen; encrypted-media">
+    </iframe>
+    <div class="player-bar">
+        <span class="live-badge">EN VIVO</span>
+        <span id="playingTitle">Cargando...</span>
+        <button class="close-btn" onclick="closePlayer()">✕</button>
+    </div>
+</div>
+
+<div id="statusBar"></div>
+
+<!-- FILTROS -->
+<div class="filters" id="filters"></div>
+
+<!-- GRID -->
+<div id="loader"><div class="spinner"></div><div>Cargando canales...</div></div>
+<div class="grid" id="grid"></div>
+
+<!-- BOTÓN FLOTANTE -->
+<button id="floatAdBtn" onclick="requestAd()">
+    <span>▶ Ver anuncio</span>
+    <span style="background:rgba(0,0,0,.15);border-radius:10px;padding:2px 7px;">+1H</span>
+</button>
+
+<!-- PANTALLA DE BLOQUEO -->
+<div id="lockScreen">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-title">Tiempo Agotado</div>
+    <div class="lock-sub">Tu crédito gratuito de visualización terminó.<br>Mirá un breve anuncio para ganar <strong style="color:var(--gold)">1 hora más</strong> de TV en vivo.</div>
+    <button class="watch-ad-btn" id="watchAdBtn" onclick="requestAd()">
+        <span class="btn-icon">📺</span>
+        <span>Ver anuncio — Ganar 1 Hora</span>
+    </button>
+    <div id="adLoadingBar"><div id="adLoadingFill"></div></div>
+    <div class="reward-info">Cada anuncio te da <span>60 minutos</span> de TV gratis</div>
+</div>
+
+<footer id="footerDate"></footer>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  CONFIGURACIÓN — EDITÁ ESTOS VALORES
+// ══════════════════════════════════════════════════════
+// JSON público — sin token, sin secretos
+const DATA_URL = "https://raw.githubusercontent.com/Master3030/Paraguay-Tv-Live/main/canales.json";
+const STARTIO_APP_ID = "TU_APP_ID_STARTIO";  // ← tu App ID de Start.io
+
+// Estos valores se sobreescriben con los del JSON al cargar
+let CREDITO_INICIAL_SEG    = 300;   // fallback si el JSON tarda
+let CREDITO_POR_ANUNCIO_SEG = 3600;
+let AVISO_BAJO_SEG          = 60;
+
+// ══════════════════════════════════════════════════════
+//  CRÉDITO — persiste en localStorage
+// ══════════════════════════════════════════════════════
+const STORAGE_KEY = 'pytv_credito';
+const STORAGE_TS  = 'pytv_ts';      // timestamp del último guardado
+
+function loadCredit() {
+    const saved   = parseInt(localStorage.getItem(STORAGE_KEY) || '0');
+    const savedTs = parseInt(localStorage.getItem(STORAGE_TS)  || '0');
+    if (saved <= 0) return CREDITO_INICIAL_SEG;
+    // Descontar tiempo transcurrido desde la última visita
+    const elapsed = Math.floor((Date.now() - savedTs) / 1000);
+    return Math.max(0, saved - elapsed);
+}
+
+function saveCredit(secs) {
+    localStorage.setItem(STORAGE_KEY, String(secs));
+    localStorage.setItem(STORAGE_TS,  String(Date.now()));
+}
+
+let creditSecs = loadCredit();
+let creditInterval = null;
+let isLocked = false;
+
+function startCreditTimer() {
+    clearInterval(creditInterval);
+    creditInterval = setInterval(() => {
+        creditSecs = Math.max(0, creditSecs - 1);
+        saveCredit(creditSecs);
+        renderCredit();
+        if (creditSecs <= 0 && !isLocked) triggerLock();
+    }, 1000);
+}
+
+function renderCredit() {
+    const h = Math.floor(creditSecs / 3600);
+    const m = Math.floor((creditSecs % 3600) / 60);
+    const s = creditSecs % 60;
+    let txt;
+    if (h > 0) txt = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    else        txt = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+    document.getElementById('creditText').textContent = txt;
+    const disp = document.getElementById('creditDisplay');
+    disp.classList.toggle('low', creditSecs <= AVISO_BAJO_SEG);
+}
+
+function addCredit(secs) {
+    creditSecs += secs;
+    saveCredit(creditSecs);
+    renderCredit();
+}
+
+// ══════════════════════════════════════════════════════
+//  BLOQUEO
+// ══════════════════════════════════════════════════════
+function triggerLock() {
+    isLocked = true;
+    // Pausar video sin destruir HLS
+    document.getElementById('video').pause();
+    document.getElementById('lockScreen').classList.add('visible');
+}
+
+function unlock() {
+    isLocked = false;
+    document.getElementById('lockScreen').classList.remove('visible');
+    // Reanudar si había algo reproduciendo
+    if (currentRawUrl) document.getElementById('video').play().catch(()=>{});
+}
+
+function showLockIfLow() {
+    // Al tocar el crédito cuando hay poco tiempo: mostrar pantalla directamente
+    if (creditSecs <= AVISO_BAJO_SEG || creditSecs <= 0) {
+        document.getElementById('lockScreen').classList.add('visible');
+    }
+}
+
+// ══════════════════════════════════════════════════════
+//  START.IO — INTERSTICIALES REWARDED
+// ══════════════════════════════════════════════════════
+let startioAd = null;
+let adReady = false;
+
+function initStartio() {
+    if (typeof StartApp === 'undefined') {
+        console.warn('[TV] Start.io SDK no cargó, modo demo activo');
+        return;
+    }
+    try {
+        startioAd = new StartApp.Interstitial(STARTIO_APP_ID);
+        startioAd.load({
+            onAdLoaded: () => { adReady = true; console.log('[TV] Anuncio Start.io listo'); },
+            onAdLoadFailed: (e) => { console.warn('[TV] Anuncio no cargó:', e); adReady = false; }
+        });
+    } catch(e) {
+        console.warn('[TV] Error init Start.io:', e);
+    }
+}
+
+function requestAd() {
+    setAdLoading(true);
+
+    if (typeof StartApp === 'undefined' || !startioAd) {
+        // ── MODO DEMO (sin SDK cargado, para pruebas) ──
+        console.log('[TV] Modo demo: simulando anuncio 3 seg');
+        setTimeout(() => {
+            setAdLoading(false);
+            onAdRewarded();
+        }, 3000);
+        return;
+    }
+
+    if (!adReady) {
+        // Recargar y esperar
+        startioAd.load({
+            onAdLoaded: () => { adReady = true; showAd(); },
+            onAdLoadFailed: () => {
+                setAdLoading(false);
+                alert('No hay anuncio disponible ahora. Intentá en un momento.');
+            }
+        });
+        return;
+    }
+    showAd();
+}
+
+function showAd() {
+    startioAd.show({
+        onAdDisplayed:  () => { setAdLoading(false); },
+        onAdClosed:     () => { adReady = false; onAdRewarded(); reloadAd(); },
+        onAdClicked:    () => {},
+        onAdShowFailed: () => { setAdLoading(false); alert('Error al mostrar el anuncio. Intentá de nuevo.'); reloadAd(); }
+    });
+}
+
+function reloadAd() {
+    // Pre-cargar el siguiente anuncio para la próxima vez
+    setTimeout(() => {
+        if (!startioAd) return;
+        startioAd.load({
+            onAdLoaded: () => { adReady = true; },
+            onAdLoadFailed: () => { adReady = false; }
+        });
+    }, 2000);
+}
+
+function onAdRewarded() {
+    addCredit(CREDITO_POR_ANUNCIO_SEG);
+    unlock();
+    showToast(`✅ ¡+1 hora añadida! Tiempo: ${formatCredit(creditSecs)}`);
+}
+
+function setAdLoading(on) {
+    const bar  = document.getElementById('adLoadingBar');
+    const fill = document.getElementById('adLoadingFill');
+    const btn  = document.getElementById('watchAdBtn');
+    if (on) {
+        bar.classList.add('visible');
+        btn.disabled = true;
+        btn.style.opacity = '.6';
+        // Animación de progreso falsa mientras carga
+        let pct = 0;
+        fill._timer = setInterval(() => {
+            pct = Math.min(pct + 3, 90);
+            fill.style.width = pct + '%';
+        }, 100);
+    } else {
+        clearInterval(fill._timer);
+        fill.style.width = '100%';
+        setTimeout(() => {
+            bar.classList.remove('visible');
+            fill.style.width = '0';
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        }, 400);
+    }
+}
+
+function formatCredit(secs) {
+    const h = Math.floor(secs/3600), m = Math.floor((secs%3600)/60);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+// ══════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════
+function showToast(msg) {
+    let t = document.getElementById('toast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'toast';
+        Object.assign(t.style, {
+            position:'fixed', bottom:'80px', left:'50%', transform:'translateX(-50%)',
+            background:'#1a1a1a', color:'#fff', padding:'10px 20px', borderRadius:'10px',
+            fontSize:'.8rem', fontWeight:'600', zIndex:'2000',
+            border:'1px solid #333', boxShadow:'0 4px 16px rgba(0,0,0,.5)',
+            transition:'opacity .3s', pointerEvents:'none'
+        });
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    clearTimeout(t._hide);
+    t._hide = setTimeout(() => t.style.opacity = '0', 3000);
+}
+
+// ══════════════════════════════════════════════════════
+//  PROXIES Y REPRODUCTOR (igual que antes)
+// ══════════════════════════════════════════════════════
+const PROXIES = [
+    u => u,
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+];
+
+let hls = null;
+let currentRawUrl = null;
+let currentCardId = null;
+let proxyIdx = 0;
+let netRetries = 0;
+let retryTimer = null;
+let keepTimer = null;
+let allChannels = [];
+
+// ══════════════════════════════════════════════════════
+//  INICIO
+// ══════════════════════════════════════════════════════
+window.onload = () => {
+    tick(); setInterval(tick, 1000);
+    renderCredit();
+    startCreditTimer();
+    initStartio();
+    document.getElementById('footerDate').textContent =
+        new Date().toLocaleDateString('es-PY',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    loadChannels();
+};
+
+function tick() {
+    // (sin reloj en header, el crédito ocupa ese espacio)
+}
+
+// ══════════════════════════════════════════════════════
+//  CARGA DE CANALES
+// ══════════════════════════════════════════════════════
+async function loadChannels() {
+    try {
+        const res = await fetch(DATA_URL + "?t=" + Date.now());
+        if (!res.ok) throw new Error(`GitHub HTTP ${res.status}`);
+        const data = await res.json();
+
+        // Leer configuración centralizada del JSON
+        const cfg = data.configuracion || {};
+        CREDITO_INICIAL_SEG     = cfg.credito_inicial_seg     ?? CREDITO_INICIAL_SEG;
+        CREDITO_POR_ANUNCIO_SEG = cfg.credito_por_anuncio_seg ?? CREDITO_POR_ANUNCIO_SEG;
+        AVISO_BAJO_SEG          = cfg.aviso_bajo_seg          ?? AVISO_BAJO_SEG;
+
+        // Usuario nuevo: arrancar con el crédito inicial definido en el JSON
+        if (!localStorage.getItem(STORAGE_KEY)) {
+            creditSecs = CREDITO_INICIAL_SEG;
+            saveCredit(creditSecs);
+            renderCredit();
+        }
+
+        allChannels = data.canales || [];
+        buildFilters(allChannels);
+        renderGrid(allChannels);
+        document.getElementById('loader').style.display = 'none';
+    } catch(e) {
+        document.getElementById('loader').innerHTML =
+            `<div style="color:var(--red);margin-bottom:8px;">⚠ Error al cargar</div>
+             <div style="font-size:.75rem;color:#555;margin-bottom:14px;">${e.message}</div>
+             <button onclick="loadChannels()" style="padding:8px 20px;background:var(--red);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Reintentar</button>`;
+    }
+}
+
+// ══════════════════════════════════════════════════════
+//  FILTROS
+// ══════════════════════════════════════════════════════
+function buildFilters(list) {
+    const cats = ['Todos', ...new Set(list.map(c => c.categoria))];
+    document.getElementById('filters').innerHTML = cats.map(cat =>
+        `<button class="filter-btn ${cat==='Todos'?'active':''}" onclick="setFilter('${cat}')">${cat}</button>`
+    ).join('');
+}
+function setFilter(cat) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.textContent===cat));
+    renderGrid(cat==='Todos' ? allChannels : allChannels.filter(c=>c.categoria===cat));
+}
+
+// ══════════════════════════════════════════════════════
+//  GRID
+// ══════════════════════════════════════════════════════
+function renderGrid(list) {
+    renderGrid._list = list; // guardamos referencia para acceder por índice
+    document.getElementById('grid').innerHTML = list.map((c, i) => `
+        <div class="card" id="card-${c.id}" onclick="playByIndex(${i})">
+            <img src="${c.logo}" onerror="this.src='https://placehold.co/120x44/111/333?text=TV'" loading="lazy">
+            <div class="card-name">${c.nombre}</div>
+            <div class="card-cat">${c.categoria}</div>
+        </div>
+    `).join('');
+}
+
+function playByIndex(i) {
+    const c = renderGrid._list[i];
+    if (!c) return;
+    // Detectar si la URL está en base64 (no empieza con http)
+    let rawUrl = c.url;
+    if (rawUrl && !rawUrl.startsWith('http')) {
+        try { rawUrl = atob(rawUrl); } catch(e) {}
+    }
+    play(rawUrl, c.nombre, c.id, c.tipo || '');
+}
+
+// ══════════════════════════════════════════════════════
+//  REPRODUCCIÓN
+// ══════════════════════════════════════════════════════
+function play(rawUrl, name, cardId, tipo) {
+    // Bloquear si sin crédito
+    if (creditSecs <= 0) { triggerLock(); return; }
+
+    if (currentCardId) document.getElementById(`card-${currentCardId}`)?.classList.remove('playing');
+    currentCardId = cardId;
+    document.getElementById(`card-${cardId}`)?.classList.add('playing');
+
+    currentRawUrl = rawUrl;
+    proxyIdx = 0; netRetries = 0;
+
+    document.getElementById('playerBox').style.display = 'block';
+    document.getElementById('playingTitle').textContent = name;
+    hideStatus();
+
+    if (tipo === 'webview') {
+        // En app Android navega directo en el WebView
+        if (typeof AndroidAds !== 'undefined') {
+            AndroidAds.loadUrl(rawUrl);
+        } else {
+            window.open(rawUrl, '_blank');
+            showToast('📺 Abriendo SNT...');
+        }
+    } else if (tipo === 'iframe') {
+        playIframe(rawUrl);
+    } else if (tipo === 'web') {
+        window.open(rawUrl, '_blank');
+        document.getElementById('playerBox').style.display = 'none';
+        showToast('🌐 Abriendo en el navegador...');
+    } else {
+        startStream(rawUrl, 0);
+    }
+    document.getElementById('playerBox').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function playIframe(url) {
+    const video  = document.getElementById('video');
+    const iframe = document.getElementById('iframePlayer');
+    // Ocultar video, mostrar iframe
+    video.style.display  = 'none';
+    video.pause();
+    if (hls) { hls.destroy(); hls = null; }
+    iframe.src = url;
+    iframe.style.display = 'block';
+    hideStatus();
+}
+
+function startStream(rawUrl, pIdx) {
+    const video = document.getElementById('video');
+    video.pause();
+    if (hls) { hls.destroy(); hls = null; }
+    clearTimeout(retryTimer); clearInterval(keepTimer);
+
+    const url = PROXIES[pIdx](rawUrl);
+    console.log(`[TV] proxy${pIdx}: ${url}`);
+
+    if (!Hls.isSupported()) {
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = url; video.play().catch(()=>{});
+            startKeepalive(rawUrl, pIdx);
+        } else showStatus('⚠ Navegador no compatible');
+        return;
+    }
+
+    hls = new Hls({
+        enableWorker:true, lowLatencyMode:false,
+        maxBufferLength:90, maxMaxBufferLength:120, backBufferLength:60,
+        maxBufferHole:2, liveSyncDurationCount:5, liveMaxLatencyDurationCount:15,
+        manifestLoadingMaxRetry:8, manifestLoadingRetryDelay:1000, manifestLoadingMaxRetryTimeout:8000,
+        levelLoadingMaxRetry:8, levelLoadingRetryDelay:1000,
+        fragLoadingMaxRetry:10, fragLoadingRetryDelay:500,
+        manifestLoadingTimeOut:20000, levelLoadingTimeOut:20000, fragLoadingTimeOut:25000,
+    });
+
+    hls.loadSource(url);
+    hls.attachMedia(video);
+
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().catch(()=>{});
+        hideStatus(); netRetries = 0;
+        startKeepalive(rawUrl, pIdx);
+    });
+
+    hls.on(Hls.Events.ERROR, (event, data) => {
+        if (!data.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            if (netRetries < 3) { netRetries++; showStatus(`🌐 Reintentando... (${netRetries}/3)`); setTimeout(()=>hls&&hls.startLoad(),2000); }
+            else rotateProxy(rawUrl);
+        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            showStatus('⚠ Error media, recuperando...'); hls.recoverMediaError();
+        } else rotateProxy(rawUrl);
+    });
+}
+
+function rotateProxy(rawUrl) {
+    clearTimeout(retryTimer);
+    const next = proxyIdx + 1;
+    if (next < PROXIES.length) {
+        proxyIdx = next; netRetries = 0;
+        showStatus(`🔄 Cambiando servidor (${next}/${PROXIES.length})...`);
+        retryTimer = setTimeout(()=>startStream(rawUrl,next),1500);
+    } else {
+        proxyIdx = 0; netRetries = 0;
+        showStatus('⏳ Sin señal — reconectando en 10 seg...');
+        retryTimer = setTimeout(()=>startStream(rawUrl,0),10000);
+    }
+}
+
+function startKeepalive(rawUrl, pIdx) {
+    clearInterval(keepTimer);
+    const video = document.getElementById('video');
+    let lastTime = video.currentTime, frozen = 0;
+    keepTimer = setInterval(()=>{
+        if (video.paused) { frozen=0; lastTime=video.currentTime; return; }
+        if (video.currentTime===lastTime) { if(++frozen>=2){ frozen=0; showStatus('🔄 Reconectando stream...'); startStream(rawUrl,pIdx); } }
+        else { frozen=0; }
+        lastTime=video.currentTime;
+    },20000);
+}
+
+function closePlayer() {
+    clearTimeout(retryTimer); clearInterval(keepTimer);
+    const video  = document.getElementById('video');
+    const iframe = document.getElementById('iframePlayer');
+    video.pause();
+    video.style.display  = 'block';
+    iframe.style.display = 'none';
+    iframe.src = '';
+    if (hls) { hls.destroy(); hls=null; }
+    document.getElementById('playerBox').style.display='none';
+    hideStatus();
+    if (currentCardId) { document.getElementById(`card-${currentCardId}`)?.classList.remove('playing'); currentCardId=null; }
+}
+
+function showStatus(msg){ const b=document.getElementById('statusBar'); b.textContent=msg; b.style.display='block'; }
+function hideStatus(){ document.getElementById('statusBar').style.display='none'; }
+</script>
+</body>
+</html>
