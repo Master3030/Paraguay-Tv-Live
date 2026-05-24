@@ -143,10 +143,6 @@
 <!-- PLAYER -->
 <div id="playerBox">
     <video id="video" controls playsinline webkit-playsinline></video>
-    <iframe id="iframePlayer" 
-        style="display:none;width:100%;aspect-ratio:16/9;border:none;background:#000;"
-        allowfullscreen allow="autoplay; fullscreen; encrypted-media">
-    </iframe>
     <div class="player-bar">
         <span class="live-badge">EN VIVO</span>
         <span id="playingTitle">Cargando...</span>
@@ -190,7 +186,7 @@
 // ══════════════════════════════════════════════════════
 // JSON público — sin token, sin secretos
 const DATA_URL = "https://raw.githubusercontent.com/Master3030/Paraguay-Tv-Live/main/canales.json";
-const STARTIO_APP_ID = "TU_APP_ID_STARTIO";  // ← tu App ID de Start.io
+const STARTIO_APP_ID = "204386295";  // ← tu App ID de Start.io
 
 // Estos valores se sobreescriben con los del JSON al cargar
 let CREDITO_INICIAL_SEG    = 300;   // fallback si el JSON tarda
@@ -297,25 +293,30 @@ function initStartio() {
 }
 
 function requestAd() {
-    setAdLoading(true);
+    // Si está en la app Android usar el puente nativo
+    if (typeof AndroidAds !== 'undefined') {
+        setAdLoading(true);
+        setTimeout(() => setAdLoading(false), 2000);
+        AndroidAds.showInterstitial();
+        return;
+    }
 
+    // Fallback web — Start.io SDK web
+    setAdLoading(true);
     if (typeof StartApp === 'undefined' || !startioAd) {
-        // ── MODO DEMO (sin SDK cargado, para pruebas) ──
-        console.log('[TV] Modo demo: simulando anuncio 3 seg');
+        // Modo demo
         setTimeout(() => {
             setAdLoading(false);
             onAdRewarded();
         }, 3000);
         return;
     }
-
     if (!adReady) {
-        // Recargar y esperar
         startioAd.load({
             onAdLoaded: () => { adReady = true; showAd(); },
             onAdLoadFailed: () => {
                 setAdLoading(false);
-                alert('No hay anuncio disponible ahora. Intentá en un momento.');
+                alert('No hay anuncio disponible. Intentá de nuevo.');
             }
         });
         return;
@@ -529,36 +530,34 @@ function play(rawUrl, name, cardId, tipo) {
     document.getElementById('playingTitle').textContent = name;
     hideStatus();
 
+    // Notificar cambio de canal a Android (para intersticial cada 3 canales)
+    if (typeof AndroidAds !== 'undefined') {
+        try { AndroidAds.onChannelChanged(); } catch(e) {}
+    }
+
     if (tipo === 'webview') {
-        // En app Android navega directo en el WebView
         if (typeof AndroidAds !== 'undefined') {
             AndroidAds.loadUrl(rawUrl);
         } else {
             window.open(rawUrl, '_blank');
-            showToast('📺 Abriendo SNT...');
+            showToast('📺 Abriendo...');
         }
-    } else if (tipo === 'iframe') {
-        playIframe(rawUrl);
-    } else if (tipo === 'web') {
-        window.open(rawUrl, '_blank');
-        document.getElementById('playerBox').style.display = 'none';
-        showToast('🌐 Abriendo en el navegador...');
+        return;
+    } else if (tipo === 'youtube') {
+        playYoutube(rawUrl);
     } else {
         startStream(rawUrl, 0);
     }
     document.getElementById('playerBox').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-function playIframe(url) {
-    const video  = document.getElementById('video');
-    const iframe = document.getElementById('iframePlayer');
-    // Ocultar video, mostrar iframe
-    video.style.display  = 'none';
-    video.pause();
-    if (hls) { hls.destroy(); hls = null; }
-    iframe.src = url;
-    iframe.style.display = 'block';
-    hideStatus();
+function playYoutube(pageUrl) {
+    // Abrir la transmisión de YouTube en nueva pestaña
+    // (YouTube bloquea embeds de streams en vivo desde dominios externos)
+    window.open(pageUrl, '_blank');
+    // Ocultar player ya que no podemos embeber
+    document.getElementById('playerBox').style.display = 'none';
+    showToast('📺 Abriendo en YouTube...');
 }
 
 function startStream(rawUrl, pIdx) {
@@ -636,12 +635,7 @@ function startKeepalive(rawUrl, pIdx) {
 
 function closePlayer() {
     clearTimeout(retryTimer); clearInterval(keepTimer);
-    const video  = document.getElementById('video');
-    const iframe = document.getElementById('iframePlayer');
-    video.pause();
-    video.style.display  = 'block';
-    iframe.style.display = 'none';
-    iframe.src = '';
+    document.getElementById('video').pause();
     if (hls) { hls.destroy(); hls=null; }
     document.getElementById('playerBox').style.display='none';
     hideStatus();
