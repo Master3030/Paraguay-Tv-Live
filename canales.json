@@ -1,7 +1,7 @@
 {
   "configuracion": {
     "app_name": "Paraguay Live TV",
-    "ultima_actualizacion": "2026-05-10",
+    "ultima_actualizacion": "2026-05-24",
     "mensaje_bienvenida": "Televisión Paraguaya en Vivo",
     "credito_inicial_seg": 300,
     "credito_por_anuncio_seg": 3600,
@@ -9,9 +9,17 @@
   },
   "canales": [
     {
+      "id": "snt",
+      "nombre": "SNT",
+      "categoria": "Variedades",
+      "url": "https://mastvfree.blogspot.com/2026/05/blog-post.html",
+      "logo": "https://www.snt.com.py/wp-content/uploads/2019/06/snt-logo.png",
+      "tipo": "webview"
+    },
+    {
       "id": "telefuturo",
       "nombre": "TELEFUTURO",
-      "categoria": "Variedades",
+      "categoria": "Nacional",
       "url": "https://copacogen.desdeparaguay.net/telefuturo/telefuturo_py_alta/media.m3u8?admin=tvaccion",
       "logo": "https://telefuturo.com.py/wp-content/uploads/2021/04/Logo-Telefuturo-2021.png"
     },
@@ -49,23 +57,13 @@
       "categoria": "Noticias",
       "url": "https://rds3.desdeparaguay.net/4dmasnoticiastv/4dmasnoticiastv/playlist.m3u8",
       "logo": "https://www.canalpro.com.py/wp-content/uploads/2017/05/logo-pro.png"
-    }, 
+    },
     {
-      "id": "canal8c&c",
+      "id": "canal8cc",
       "nombre": "CANAL 8 C&C",
       "categoria": "Variedades",
       "url": "https://video.hostingcaaguazu.com:19360/canal8cvs/canal8cvs.m3u8",
       "logo": "https://www.canalpro.com.py/wp-content/uploads/2017/05/logo-pro.png"
-    }, 
-    {
-      "id": "snt",
-      "nombre": "SNT",
-      "categoria": "Nacional",
-      "url": "https://mastvfree.blogspot.com/2026/05/blog-post.html",
-      "logo": "https://www.snt.com.py/wp-content/uploads/2019/06/snt-logo.png",
-      "tipo": "webview"
-    
-  }
-    
+    }
   ]
 }
