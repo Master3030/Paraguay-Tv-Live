@@ -64,6 +64,13 @@
       "categoria": "Variedades",
       "url": "https://video.hostingcaaguazu.com:19360/canal8cvs/canal8cvs.m3u8",
       "logo": "https://www.canalpro.com.py/wp-content/uploads/2017/05/logo-pro.png"
+    },
+    {
+      "id": "gentv",
+      "nombre": "GEN TV",
+      "categoria": "Variedades",
+      "url": "https://copacogen.desdeparaguay.net/gentv/gentv_py_baja/playlist.m3u8?k=admin=nacion",
+      "logo": "https://www.canalpro.com.py/wp-content/uploads/2017/05/logo-pro.png"
     }
   ]
 }
