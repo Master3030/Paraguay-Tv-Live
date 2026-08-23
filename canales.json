@@ -27,7 +27,7 @@
       "id": "monumental",
       "nombre": "MONUMENTAL",
       "categoria": "Noticias",
-      "url": "https://copacogen.desdeparaguay.net/monumentaltv/monumentaltv_py_alta/media.m3u8?admin=tvaccion",
+      "url": "https://copacogen.desdeparaguay.net/monumentaltv/monumentaltv_alta/playlist.m3u8?admin=tvaccion",
       "logo": "https://noticiaspy.com/wp-content/uploads/2019/01/monumental.png"
     },
     {
