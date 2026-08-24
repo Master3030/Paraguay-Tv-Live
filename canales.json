@@ -12,9 +12,8 @@
       "id": "snt",
       "nombre": "SNT",
       "categoria": "Variedades",
-      "url": "https://mastvfree.blogspot.com/2026/05/blog-post.html",
-      "logo": "https://www.snt.com.py/wp-content/uploads/2019/06/snt-logo.png",
-      "tipo": "iframe"
+      "url": "https://d3epa8orr2qy3m.cloudfront.net/ts:abr.m3u8",
+      "logo": "https://telefuturo.com.py/wp-content/uploads/2021/04/Logo-Telefuturo-2021.png"
     },
     {
       "id": "telefuturo",
@@ -70,6 +69,13 @@
       "nombre": "GEN TV",
       "categoria": "Variedades",
       "url": "https://tigocloud.desdeparaguay.net/gentv/gentv/playlist.m3u8",
+      "logo": "https://www.canalpro.com.py/wp-content/uploads/2017/05/logo-pro.png"
+    },
+    {
+      "id": "cosmostv",
+      "nombre": "COSMOS TV",
+      "categoria": "Variedades",
+      "url": "https://video.hostingcaaguazu.com:19360/cosmostv/cosmostv.m3u8",
       "logo": "https://www.canalpro.com.py/wp-content/uploads/2017/05/logo-pro.png"
     }
   ]
